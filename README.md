@@ -23,6 +23,7 @@ Industry-agnostic AI governance frameworks developed through hands-on implementa
 | [Compliance-by-Design](./frameworks/compliance-by-design.md) | Embedding regulatory compliance into AI pipelines through deterministic guardrails |
 | [Multi-Layer Validation Architecture](./frameworks/validation-architecture.md) | 4-layer validation system for catching hallucinations, policy violations, and quality failures |
 | [Audit & Accountability Framework](./frameworks/audit-accountability.md) | Structured audit methodology with agent hierarchy, adversarial testing, and governance documentation |
+| [Regulatory Alignment Mapping](./frameworks/regulatory-alignment.md) | Detailed mapping to NIST AI RMF, EU AI Act, and ISO/IEC 42001 with implementation evidence |
 
 ### [Implementation Patterns](./patterns/)
 Production-tested code patterns for governed AI systems:
