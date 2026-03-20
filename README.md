@@ -3,6 +3,8 @@
 **Author:** Sumit Kumar | AI Governance & Enterprise Advisory
 This approach reflects a shift from AI experimentation to governed, production-grade systems that organizations can trust and scale.
 
+My Fav Line : You move from “AI that tries to behave” → to “AI that is designed to behave.
+
 ---
 
 ## Overview
