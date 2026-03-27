@@ -354,6 +354,66 @@ class ValidationPipeline:
 
 ---
 
+## The Last Mutation Boundary Rule
+
+One of the most critical lessons from production: **any system with post-processing must enforce final integrity at the LAST mutation boundary, not the first.**
+
+### The Problem
+
+Consider a pipeline: Generation → Compliance Scan → Grammar Repair → Output. If compliance is checked after generation but grammar repair runs after compliance, the grammar repair can **reintroduce violations** that compliance already caught. The fix was validated at the wrong boundary.
+
+### The Rule
+
+> Final integrity enforcement must occur at the **outermost mutation point** — the last place in the pipeline where content can change. Any mutation after a compliance check invalidates that check.
+
+### Dual-Layer Gates
+
+In practice, this means implementing integrity gates at two levels:
+
+```python
+class DualLayerIntegrityGate:
+    """
+    Enforce integrity at both component level and service level.
+
+    Layer 1 (Component): Each content generator enforces its own integrity
+    Layer 2 (Service): The service that orchestrates generators enforces
+              final integrity AFTER all mutations are complete
+
+    The service-level gate is the authoritative one. The component-level
+    gate catches issues early but cannot be trusted as final.
+    """
+
+    def enforce_component_level(self, content: str) -> str:
+        """First gate — catches most issues early."""
+        content = self.compliance_scanner.scan_and_fix(content)
+        content = self.quality_enforcer.enforce(content)
+        return content
+
+    def enforce_service_level(self, content: str) -> str:
+        """
+        Final gate — runs AFTER all post-processing is complete.
+
+        This is the authoritative integrity check. If content fails here,
+        it is blocked from production regardless of component-level results.
+        """
+        result = self.final_integrity_check(content)
+        if not result.passed:
+            # Content failed at the last boundary — block it
+            return self._build_deterministic_fallback(content)
+        return content
+```
+
+### Why This Matters
+
+In production, this pattern eliminated a class of bugs where:
+- Grammar repair re-introduced banned phrases after compliance scanning
+- Text normalization changed content after quality validation
+- Post-processing formatting mutations invalidated prior compliance checks
+
+The principle: **validate at the last moment, not the first.** Anything checked early can be invalidated by later mutations.
+
+---
+
 ## Monitoring & Observability
 
 Each layer produces telemetry for governance monitoring:

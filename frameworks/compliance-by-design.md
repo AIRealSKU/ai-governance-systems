@@ -210,6 +210,173 @@ class ComplianceRemediator:
 
 ---
 
+## Advanced Compliance Patterns
+
+### Trust-Tiered Claim Model
+
+Not all data in an AI system has the same credibility. A trust-tiered model assigns every factual claim a trust level, then enforces rendering rules based on that level:
+
+```python
+class TrustTier(Enum):
+    """5-tier trust classification for factual claims."""
+    VERIFIED = "verified"           # Confirmed by authoritative source (e.g., official database)
+    AGENT_DECLARED = "agent_declared"  # Stated by a human operator, unverified
+    DERIVED = "derived"             # Inferred from verified data through rules
+    GENERATED = "generated"         # Produced by AI — lowest trust before blocked
+    BLOCKED = "blocked"             # Fails compliance — must not appear in output
+
+@dataclass
+class Claim:
+    """A single factual assertion with trust metadata."""
+    text: str
+    trust_tier: TrustTier
+    source: str                     # Where this claim originated
+    confidence: float               # 0.0-1.0 confidence in the claim
+    verified_at: Optional[datetime] # When verification occurred
+
+
+class ClaimInventory:
+    """Central registry of all claims for a given context."""
+
+    def get_claims_for_mode(self, rendering_mode: str) -> list[Claim]:
+        """
+        Mode-scoped rendering: different output contexts allow different trust levels.
+
+        - "strict" mode: Only VERIFIED claims (e.g., official documents)
+        - "standard" mode: VERIFIED + AGENT_DECLARED (e.g., marketing content)
+        - "internal" mode: All non-blocked claims (e.g., draft review)
+        """
+        allowed_tiers = self.MODE_TIERS[rendering_mode]
+        return [c for c in self.claims if c.trust_tier in allowed_tiers]
+```
+
+**Why this matters:** Without trust tiers, AI systems treat all data equally — an unverified AI-generated claim gets the same prominence as a database-confirmed fact. Trust tiers prevent this by making trust explicit and rendering rules enforceable.
+
+### 3-Layer Writing Policy Architecture
+
+When AI generates text that must comply with regulations, a single prompt instruction is insufficient. A 3-layer architecture provides defense in depth:
+
+```
+Layer 1: Source Control     — Control what the AI is asked to write
+Layer 2: Kill Switches      — Deterministic removal of prohibited content
+Layer 3: Controlled Vocabulary — Restrict the output to approved language
+```
+
+**Layer 1: Source Control** — Prompt hardening, positive/negative examples, temperature reduction. Reduces the probability of violations at generation time.
+
+**Layer 2: Kill Switches** — Deterministic post-processing that removes specific categories of prohibited content. Each kill switch targets a category (e.g., calls-to-action, exclamation marks, person-targeting language, promotional verbs, filler phrases). Kill switches are binary — content either passes or is stripped.
+
+**Layer 3: Controlled Vocabulary** — An approved vocabulary of adjectives, phrases, and sentence patterns. Content containing unapproved embellishments, superlatives, or domain-specific prohibited terms is stripped and replaced with neutral alternatives.
+
+```python
+class WritingPolicyEnforcer:
+    """3-layer writing policy enforcement."""
+
+    def enforce(self, text: str, policy_profile: str) -> str:
+        # Layer 1 already applied at generation time (prompt + temperature)
+
+        # Layer 2: Kill switches (deterministic removal)
+        for switch in self.kill_switches.get_for_profile(policy_profile):
+            text = switch.apply(text)
+
+        # Layer 3: Controlled vocabulary
+        text = self.vocabulary_filter.enforce(text, policy_profile)
+
+        return text
+```
+
+**Production result:** This 3-layer approach reduced compliance violations from ~15% (prompt-only) to 0% (post-processing), while maintaining content quality scores above 8.0/10.
+
+### Shared Integrity Layer
+
+When a system produces multiple output types (emails, social posts, documents, structured data), each type needs compliance enforcement — but duplicating enforcement logic creates inconsistency and maintenance burden.
+
+A **shared integrity layer** provides a single, reusable enforcement pipeline that adapts to each content type through profiles:
+
+```python
+class IntegrityProfile:
+    """Content-type-specific enforcement configuration."""
+    content_type: str            # e.g., "email", "social", "document"
+    block_aware: bool            # Whether to process by blocks (paragraphs, bullets)
+    skipped_checks: list[str]    # Checks to skip for this content type
+    scoring_weights: dict        # Custom weights for quality dimensions
+
+
+class SharedIntegrityLayer:
+    """
+    Reusable enforcement layer across all content types.
+
+    Same core logic, different profiles. One place to fix, one place to audit.
+    """
+
+    def enforce(self, content: str, profile: IntegrityProfile) -> str:
+        # Block-aware processing: paragraphs and bullets treated differently
+        if profile.block_aware:
+            blocks = self._segment_blocks(content)
+            enforced_blocks = [
+                self._enforce_block(block, profile) for block in blocks
+            ]
+            return self._reassemble(enforced_blocks)
+        else:
+            return self._enforce_block(content, profile)
+
+    def _enforce_block(self, block: str, profile: IntegrityProfile) -> str:
+        """Apply all enforcement steps to a single block."""
+        for step in self.enforcement_steps:
+            if step.name not in profile.skipped_checks:
+                block = step.apply(block)
+        return block
+```
+
+**Key benefit:** When a compliance rule is updated, it takes effect across all content types simultaneously. No drift, no missed types, no inconsistency.
+
+### Compliance Rules Engine
+
+For organizations operating across multiple jurisdictions, compliance rules must be externalized from code and managed as data:
+
+```python
+class ComplianceRulesEngine:
+    """
+    Externalized compliance rules with admin workflow.
+
+    Lifecycle: Upload source → AI extraction → Admin review → Promote → Enforce
+    """
+
+    def ingest_rules(self, source_document: bytes, jurisdiction: str):
+        """
+        Extract compliance rules from regulatory documents.
+
+        1. AI extracts candidate rules from source (PDF, HTML, etc.)
+        2. Deterministic classifier categorizes each rule
+        3. Admin reviews and approves/rejects each rule
+        4. Approved rules are promoted into the enforcement pipeline
+        5. Deduplication prevents the same rule from being added twice
+        """
+        candidates = self.extractor.extract(source_document)
+        classified = self.classifier.classify(candidates)
+        return PendingRuleSet(
+            rules=classified,
+            jurisdiction=jurisdiction,
+            status="PENDING_REVIEW",
+            audit_trail=self._build_trail(source_document)
+        )
+
+    def promote_rule(self, rule_id: str, admin_email: str):
+        """Promote a reviewed rule into active enforcement."""
+        rule = self.get_rule(rule_id)
+        rule.status = "ACTIVE"
+        rule.promoted_by = admin_email
+        rule.promoted_at = datetime.now()
+        self.audit_log.record("RULE_PROMOTED", rule_id, admin_email)
+```
+
+**Rule types:**
+- **Structural rules:** Full prompt-level instructions (e.g., "descriptions must not exceed 1000 characters")
+- **Hard blocks:** Deterministic phrase/pattern blocks compressed into the enforcement pipeline
+- **Soft guidance:** Advisory rules that flag but don't block (e.g., "prefer active voice")
+
+---
+
 ## Design Principles
 
 ### 1. The User Never Fixes Compliance

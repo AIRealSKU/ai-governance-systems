@@ -8,7 +8,7 @@
 
 This framework provides a structured approach to AI governance that balances innovation velocity with control, compliance, and accountability. It is designed for organizations deploying AI in production environments — particularly in regulated industries where output quality, fairness, and auditability are non-negotiable.
 
-Unlike theoretical governance models, this framework was developed through 70+ iterations of building and governing production AI systems. Every control, checkpoint, and escalation path exists because a real failure mode demanded it.
+Unlike theoretical governance models, this framework was developed through 80+ iterations of building and governing production AI systems. Every control, checkpoint, and escalation path exists because a real failure mode demanded it.
 
 ---
 
@@ -59,6 +59,20 @@ Controls fall into three categories:
 - Targeted regeneration (re-run specific failing components)
 - Deterministic post-processing (rule-based fixes)
 - Graceful degradation (fallback to safe defaults)
+- Shared integrity layers (reusable enforcement across asset types)
+
+### Pillar 5: Production Lock Methodology
+
+AI systems must earn their way to production through formal certification — not assumptions that "it seems to work."
+
+**The Production Lock Protocol:**
+1. **Baseline validation** — Run 100+ automated generations and measure compliance, quality, and structural integrity
+2. **Large-scale validation** — Run 500+ generations; target ≥98% clean rate with 0 compliance failures
+3. **Lock specification** — Document the system's architecture, known limitations, and regression anchors in a formal lock spec
+4. **Dual-layer enforcement** — Final integrity gates at both the component level and the service level (Last Mutation Boundary Rule)
+5. **Known-limitation registry** — Document what the system does not handle, with accepted risk justification and review dates
+
+A system is **production-locked** when it has passed large-scale validation and its lock spec is signed off. Changes to a locked system require re-validation.
 
 ### Pillar 4: Human Oversight
 
@@ -135,6 +149,8 @@ Every AI governance decision should be evaluated against:
 - First-pass clean rate: ≥25% healthy, <15% danger zone
 - Self-heal rate: ≥85% target, <70% requires investigation
 - Production leaks (post-governance failures): 0% target, any non-zero requires root cause analysis
+- Production lock validation: ≥98% clean across 500+ runs required for lock certification
+- Regression anchor coverage: mature systems maintain 100+ anchors from real failure modes
 
 ---
 
@@ -172,6 +188,9 @@ Common governance failures to avoid:
 | **Governance theater** | Checkboxes without substance | Measure outcomes (leak rate, clean rate), not activities |
 | **Over-governance** | Every output reviewed by committee | Risk-tier appropriately, trust automated controls for lower tiers |
 | **Prompt-only governance** | Relying on instructions in prompts for compliance | Post-processing > prompt engineering for deterministic requirements |
+| **Integrity at the wrong boundary** | Checking output at generation but not after post-processing mutations | Enforce final integrity at the LAST mutation boundary, not the first |
+| **One-off validation** | Testing with a handful of examples | Production lock requires 500+ validation runs to prove reliability at scale |
+| **Shared enforcement as optional** | Each asset type builds its own compliance layer | Shared integrity layers ensure consistent governance across all output types |
 
 ---
 

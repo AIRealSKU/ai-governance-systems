@@ -238,6 +238,20 @@ When the backend enforces finalization, the frontend naturally becomes trustwort
 ### 5. Refetch Is Safer Than State Patching
 After finalization, the UI refetches from the database rather than patching local state. This guarantees the user sees exactly what the governance pipeline approved, with no client-side state drift.
 
+### 6. The Last Mutation Boundary Rule
+Any system with post-processing (grammar repair, formatting, normalization) must enforce final integrity at the **last mutation boundary** — the outermost point where content can change. A compliance check that runs before grammar repair is not a final check if grammar repair can reintroduce violations.
+
+In practice, this means dual-layer gates: component-level (early catch) + service-level (authoritative final check). The service-level gate is the one that matters.
+
+### 7. Production Lock as Governance Graduation
+The Finalization Principle ensures individual outputs are governed. **Production Lock** ensures the entire system is governed. A system earns production-lock status through:
+- 500+ validation runs with ≥98% clean rate
+- 0 compliance failures across all runs
+- Formal lock specification documenting architecture and known limitations
+- All regression anchors passing
+
+**Production result:** 493/500 clean (98.6%), 0 structural failures, 0 compliance failures, 5 independently locked systems.
+
 ---
 
 ## The Broader Principle

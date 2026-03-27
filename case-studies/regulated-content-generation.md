@@ -121,15 +121,57 @@ This metric was the single best indicator of system health. When first-pass clea
 
 ---
 
+## Phase 2: Quality Recovery Through Governance
+
+After achieving compliance (0% leaks), the next challenge was quality. An honest audit scored the system's output at **4.8/10** — compliant but mediocre. The governance framework that solved compliance was extended to solve quality.
+
+### The Extract → Compose → Enforce Pipeline
+
+Instead of asking the AI to "write good content" (prompt-only approach), the system was restructured into three governed stages:
+
+1. **Extract** — Deterministic extraction of source facts at temperature 0, with an extraction validation gate (minimum quality 0.6, coverage 0.5). Bad extraction → safe fallback, not bad content.
+
+2. **Compose** — AI generates within structural constraints, using density-aware rendering (rich source data → 5 paragraphs, sparse → 1-2). Each content block rendered in parallel with per-asset isolation.
+
+3. **Enforce** — 3-layer writing policy (source control → kill switches → controlled vocabulary), shared integrity layer across all content types, and dual-layer integrity gates (component + service level).
+
+### Results
+
+| Metric | Before | After |
+|---|---|---|
+| Overall quality score | 4.8/10 | 9.0/10 |
+| Minimum score (worst output) | 2.1/10 | 7.8/10 |
+| Compliance leaks | 0 | 0 (maintained) |
+| False blocks (over-enforcement) | 0 | 0 |
+
+### Production Lock Validation
+
+The system was then formally certified through a **500-run production validation**:
+
+| Validation Metric | Result |
+|---|---|
+| Total runs | 500 |
+| Clean outputs | 493 (98.6%) |
+| Structural failures | 0 |
+| Compliance failures | 0 |
+| Hallucinations | 0 |
+| Transient errors | 7 (HTTP timeouts, race conditions) |
+
+After validation, the system was **production-locked** — formal lock specifications document the architecture, known limitations, and regression anchors. Any changes require re-validation.
+
+---
+
 ## Governance Artifacts Created
 
 | Artifact | Purpose |
 |---|---|
 | Banned Phrase Registry (500+ phrases) | Deterministic compliance enforcement |
-| 56 Regression Anchors | Prevent recurrence of fixed issues |
-| Decision Log (28+ decisions) | Rationale capture for governance choices |
+| 165 Regression Anchors | Prevent recurrence of fixed issues |
+| Decision Log (100+ decisions) | Rationale capture for governance choices |
 | Accepted Risk Register | Documented trade-offs with review dates |
 | Audit Playbook | 4-phase audit methodology for quarterly reviews |
+| 5 Production Lock Specifications | Formal certification for each content type |
+| Shared Integrity Layer | Reusable enforcement across all content types |
 
 ---
 

@@ -140,9 +140,10 @@ class RegressionAnchor:
 ### Anchor Management
 
 - **Never delete anchors** — they represent real failure modes
-- **Anchors accumulate** — a mature system has 50+ anchors
+- **Anchors accumulate** — a mature system has 165+ anchors (proven in production)
 - **Run all anchors** before every deployment
 - **New anchors** are created from every audit finding and bug fix
+- **Anchor density** indicates system maturity — more anchors = more battle-tested
 
 ---
 
@@ -238,6 +239,66 @@ Each audit tier has minimum evidence requirements:
 - **Tier 1:** Full test suite, adversarial results, go/no-go sign-off
 - **Tier 2:** Test suite results, spot-check findings
 - **Tier 3:** Automated regression results
+
+---
+
+## Production Lock Methodology
+
+Beyond periodic audits, systems that generate customer-facing output should go through a formal **production lock** process before being certified for production use.
+
+### The Lock Protocol
+
+```
+1. Build & Stabilize    — System passes all unit and integration tests
+2. Baseline Validation  — 100+ automated runs, measure clean rate
+3. Full Validation      — 500+ automated runs, target ≥98% clean
+4. Lock Specification   — Document architecture, known limitations, regression anchors
+5. Lock Declaration     — System is certified; changes require re-validation
+```
+
+### Lock Specification Document
+
+Every production-locked system has a formal spec:
+
+```markdown
+## Lock Spec: [System Name] v[Version]
+
+### Architecture
+- Pipeline stages and their order
+- Mutation points (where content can change)
+- Final integrity boundary (Last Mutation Boundary)
+
+### Validation Results
+- Total runs: 500
+- Clean rate: 98.6% (493/500)
+- Structural failures: 0
+- Compliance failures: 0
+- Transient errors: 7 (HTTP timeouts, race conditions)
+
+### Known Limitations
+- [Limitation 1] — Accepted risk with justification
+- [Limitation 2] — Mitigated by [control]
+
+### Regression Anchors
+- R-001 through R-165 (linked to specific failure modes)
+
+### Change Policy
+- Any change to locked code requires re-running full validation
+- Known limitations reviewed quarterly
+- Lock spec updated with each re-validation
+```
+
+### Production Validation Methodology
+
+Large-scale validation is not just "run it a lot." The methodology matters:
+
+1. **Diverse inputs** — Cover sparse, medium, and rich source data
+2. **Multiple profiles** — Test across all content types and configurations
+3. **Failure classification** — Distinguish structural, compliance, quality, and transient failures
+4. **Transient tolerance** — HTTP timeouts and race conditions are not system failures
+5. **Zero-tolerance categories** — Compliance violations and structural failures must be 0
+
+**Production result:** 493/500 clean (98.6%). 0 structural failures, 0 compliance failures, 0 hallucinations. 7 transient errors (4 HTTP timeouts, 2 compliance check exhaustion, 1 race condition).
 
 ---
 

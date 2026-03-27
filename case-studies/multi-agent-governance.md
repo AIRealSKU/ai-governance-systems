@@ -246,6 +246,67 @@ Not all agents need to run in sequence. Content generation for different asset t
 
 ---
 
+## Advanced: Action Registry and Dispatch Governance
+
+As multi-agent systems mature, the number of possible actions grows. A **typed action registry** with governance controls prevents unauthorized or duplicate actions:
+
+```python
+@dataclass
+class RegisteredAction:
+    """A typed, governed action that agents can execute."""
+    action_id: str                # Unique identifier
+    action_type: str              # Category (generate, publish, export, etc.)
+    required_permissions: list    # Who/what can trigger this action
+    idempotency_key: str          # Prevents duplicate execution
+    soft_lock: bool               # Whether to lock the resource during execution
+
+
+class ActionRegistry:
+    """
+    Central registry of all actions the system can perform.
+
+    Every action is typed, permissioned, and idempotent.
+    No agent can execute an action not in the registry.
+    """
+
+    def __init__(self):
+        self.actions = {}  # 34+ typed actions in production
+
+    def dispatch(self, action_id: str, source: str, nonce: str) -> ActionResult:
+        """
+        Execute a registered action with full governance.
+
+        Contract: ?action=<id>&source=<origin>&nonce=<idempotency_key>
+        - action: Must exist in registry
+        - source: Must be an authorized trigger (UI, automation, API)
+        - nonce: Prevents duplicate execution
+        """
+        action = self.actions.get(action_id)
+        if not action:
+            return ActionResult(status="REJECTED", reason="Unknown action")
+
+        # Idempotency check
+        if self._nonce_already_executed(nonce):
+            return ActionResult(status="DUPLICATE", reason="Already executed")
+
+        # Soft lock check
+        if action.soft_lock and self._resource_locked(action):
+            return ActionResult(status="LOCKED", reason="Resource in use")
+
+        # Execute and log telemetry
+        result = self._execute(action, source)
+        self._log_telemetry(action, source, nonce, result)
+        return result
+```
+
+**Key governance benefits:**
+- **No rogue actions** — only registered actions can execute
+- **Idempotency** — duplicate requests (retries, double-clicks) are safely ignored
+- **Soft locks** — prevent conflicting operations on the same resource
+- **Full telemetry** — every action logged with source, nonce, and result
+
+---
+
 ## Governance Dashboard
 
 The agent governance dashboard surfaces:
