@@ -7,6 +7,8 @@ My Fav Lines of my Journey(Learnings) so far:
 
 1. You move from “AI that tries to behave” → to “AI that is designed to behave.
 2. I don’t rely on the LLM to be perfect — I designed the system so it doesn’t have to be
+3. I don’t rely on the LLM to be perfect— I design systems where perfection isn’t required
+4. I didn’t make the model smarter— I made the system safer.
 
 > Production-tested governance frameworks, implementation patterns, and case studies
 > from 80+ engineering sessions building AI systems in regulated industries.
